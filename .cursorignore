@@ -1,0 +1,3 @@
+tcc-upload-secret/
+.env
+.env-docker
