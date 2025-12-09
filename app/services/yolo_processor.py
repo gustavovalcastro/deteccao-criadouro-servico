@@ -5,6 +5,7 @@ from typing import Tuple
 from ultralytics import YOLO
 from app.config import settings
 import os
+import httpx
 
 
 class YOLOProcessor:
@@ -13,9 +14,29 @@ class YOLOProcessor:
     def __init__(self):
         """Initialize YOLO model."""
         if not os.path.exists(settings.YOLO_MODEL_PATH):
-            raise FileNotFoundError(
-                f"YOLO model not found at {settings.YOLO_MODEL_PATH}"
-            )
+            if settings.YOLO_MODEL_URL:
+                print(f"Model not found at {settings.YOLO_MODEL_PATH}. Downloading from {settings.YOLO_MODEL_URL}...")
+                
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(settings.YOLO_MODEL_PATH), exist_ok=True)
+                
+                try:
+                    with httpx.Client(follow_redirects=True) as client:
+                        with client.stream("GET", settings.YOLO_MODEL_URL) as response:
+                            response.raise_for_status()
+                            with open(settings.YOLO_MODEL_PATH, "wb") as f:
+                                for chunk in response.iter_bytes():
+                                    f.write(chunk)
+                    print(f"Model downloaded successfully to {settings.YOLO_MODEL_PATH}")
+                except Exception as e:
+                    # Clean up partial download if it failed
+                    if os.path.exists(settings.YOLO_MODEL_PATH):
+                        os.remove(settings.YOLO_MODEL_PATH)
+                    raise RuntimeError(f"Failed to download model from {settings.YOLO_MODEL_URL}: {str(e)}")
+            else:
+                raise FileNotFoundError(
+                    f"YOLO model not found at {settings.YOLO_MODEL_PATH}"
+                )
         
         self.model = YOLO(settings.YOLO_MODEL_PATH)
     

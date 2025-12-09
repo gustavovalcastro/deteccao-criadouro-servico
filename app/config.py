@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     
     # YOLO Model
     YOLO_MODEL_PATH: str = os.getenv("YOLO_MODEL_PATH", "/app/models/model.pt")
+    YOLO_MODEL_URL: Optional[str] = os.getenv("YOLO_MODEL_URL", None)
     
     # External API
     EXTERNAL_API_URL: str = os.getenv("EXTERNAL_API_URL", "")
