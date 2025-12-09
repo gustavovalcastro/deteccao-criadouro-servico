@@ -48,8 +48,8 @@ class YOLOProcessor:
         results = self.model(image, conf=conf_threshold)
         result = results[0]
         
-        # Bright orange color in BGR format: (0, 165, 255)
-        bright_orange = (0, 165, 255)
+        # Red color in BGR format: (0, 0, 255)
+        color = (0, 0, 255)
         line_width = 5
         
         annotated_image = image.copy()
@@ -58,7 +58,7 @@ class YOLOProcessor:
         if len(result.boxes) > 0:
             for box in result.boxes:
                 x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                cv2.rectangle(annotated_image, (x1, y1), (x2, y2), bright_orange, line_width)
+                cv2.rectangle(annotated_image, (x1, y1), (x2, y2), color, line_width)
         
         # Count detected objects
         detected_count = len(result.boxes)
