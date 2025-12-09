@@ -19,12 +19,13 @@ class YOLOProcessor:
         
         self.model = YOLO(settings.YOLO_MODEL_PATH)
     
-    def detect_objects(self, image_bytes: bytes) -> Tuple[bytes, int]:
+    def detect_objects(self, image_bytes: bytes, conf_threshold: float = 0.25) -> Tuple[bytes, int]:
         """
         Detect objects in an image using YOLO model.
         
         Args:
             image_bytes: Image data as bytes
+            conf_threshold: Confidence threshold for detections (default: 0.25)
             
         Returns:
             Tuple of (processed_image_bytes, detected_objects_count)
@@ -36,14 +37,31 @@ class YOLOProcessor:
         if image is None:
             raise ValueError("Failed to decode image")
         
-        # Run YOLO inference
-        results = self.model(image)
+        # Resize image so smaller side is 640px
+        h, w = image.shape[:2]
+        if min(h, w) != 640:
+            scale = 640 / min(h, w)
+            new_h, new_w = int(h * scale), int(w * scale)
+            image = cv2.resize(image, (new_w, new_h))
         
-        # Draw bounding boxes on image
-        annotated_image = results[0].plot()
+        # Run YOLO inference
+        results = self.model(image, conf=conf_threshold)
+        result = results[0]
+        
+        # Bright orange color in BGR format: (0, 165, 255)
+        bright_orange = (0, 165, 255)
+        line_width = 5
+        
+        annotated_image = image.copy()
+        
+        # Draw bounding boxes with custom color
+        if len(result.boxes) > 0:
+            for box in result.boxes:
+                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                cv2.rectangle(annotated_image, (x1, y1), (x2, y2), bright_orange, line_width)
         
         # Count detected objects
-        detected_count = len(results[0].boxes)
+        detected_count = len(result.boxes)
         
         # Convert annotated image back to bytes
         _, encoded_image = cv2.imencode('.jpg', annotated_image)
@@ -62,9 +80,3 @@ def get_yolo_processor() -> YOLOProcessor:
     if _yolo_processor is None:
         _yolo_processor = YOLOProcessor()
     return _yolo_processor
-
-
-
-
-
-
